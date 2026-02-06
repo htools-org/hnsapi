@@ -240,10 +240,7 @@ export function restRouter(backend: Backend, cache: Cache): Router {
   );
   router.get('/mempool', directGetHandler(backend));
   router.get('/mempool/invalid', directGetHandler(backend));
-  router.get(
-    /^\/mempool\/invalid\/[0-9a-f]{64}$/,
-    directGetHandler(backend),
-  );
+  router.get(/^\/mempool\/invalid\/[0-9a-f]{64}$/, directGetHandler(backend));
   router.get(
     /^\/block\/(?:[0-9a-f]{64}|[0-9]+)$/,
     blockExpiringGetHandler(backend, cache),
@@ -262,10 +259,7 @@ export function restRouter(backend: Backend, cache: Cache): Router {
   );
   router.get('/coin/address/:address', blockExpiringGetHandler(backend, cache));
   router.post('/coin/address', directPostHandler(backend));
-  router.get(
-    /^\/tx\/[0-9a-f]{64}$/,
-    blockExpiringGetHandler(backend, cache),
-  );
+  router.get(/^\/tx\/[0-9a-f]{64}$/, blockExpiringGetHandler(backend, cache));
   router.get('/tx/address/:address', directGetHandler(backend));
   router.get('/tx/address/:address', directGetHandler(backend));
   // router.post('/tx/address', directPostHandler(backend));

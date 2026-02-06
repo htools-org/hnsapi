@@ -12,7 +12,8 @@ import getHeight from './height';
 import BloomFilter, { getBloomSize } from './BloomFilter';
 import { uint32LEBuf } from './io';
 
-const COINBASE = '0000000000000000000000000000000000000000000000000000000000000000';
+const COINBASE =
+  '0000000000000000000000000000000000000000000000000000000000000000';
 const FINALITY_DEPTH = 11;
 
 interface RPCHandler {
@@ -24,15 +25,15 @@ class RPCRegistrar {
 
   private readonly backend: Backend;
 
-  constructor (backend: Backend) {
+  constructor(backend: Backend) {
     this.backend = backend;
   }
 
-  addHandler (method: string, handler: RPCHandler) {
+  addHandler(method: string, handler: RPCHandler) {
     this.handlers[method] = handler;
   }
 
-  async handle (req: Request, res: Response) {
+  async handle(req: Request, res: Response) {
     let reqBody = req.body;
     let isBatch = true;
     if (!Array.isArray(reqBody)) {
@@ -64,7 +65,7 @@ class RPCRegistrar {
         responses.push({
           id: body.id,
           result: null,
-          error: methodNotFound
+          error: methodNotFound,
         });
         continue;
       }
@@ -86,17 +87,20 @@ class RPCRegistrar {
         responses.push({
           id: body.id,
           result: null,
-          error: methodNotFound
+          error: methodNotFound,
         });
         continue;
       }
 
       try {
-        const result = await this.handlers[body.method](body.method, body.params);
+        const result = await this.handlers[body.method](
+          body.method,
+          body.params,
+        );
         responses.push({
           id: body.id,
           result,
-          error: null
+          error: null,
         });
       } catch (e: any) {
         let error = internalError;
@@ -126,20 +130,20 @@ class RPCRegistrar {
 class RPCError extends Error {
   private code: number;
 
-  constructor (params: { message: string, code: number }) {
+  constructor(params: { message: string; code: number }) {
     super(params.message);
     this.code = params.code;
   }
 }
 
-async function disabledRPCHandler (method: string, params: any[]) {
+async function disabledRPCHandler(method: string, params: any[]) {
   throw new RPCError({
     message: 'RPC method is disabled.',
-    code: -32000
+    code: -32000,
   });
 }
 
-function directRPCHandler (backend: Backend): RPCHandler {
+function directRPCHandler(backend: Backend): RPCHandler {
   return async (method, params) => {
     const rpcRes = await backend.execRpc(method, params);
     if (rpcRes.error) {
@@ -149,7 +153,11 @@ function directRPCHandler (backend: Backend): RPCHandler {
   };
 }
 
-function blockExpiringRPCHandler (backend: Backend, cache: Cache, expiry: number = 15 * 60): RPCHandler {
+function blockExpiringRPCHandler(
+  backend: Backend,
+  cache: Cache,
+  expiry: number = 15 * 60,
+): RPCHandler {
   return async (method, params) => {
     const height = await getHeight(backend, cache);
     const ck = `rpc/${height}/${method}/${hashParams(params)}`;
@@ -157,14 +165,22 @@ function blockExpiringRPCHandler (backend: Backend, cache: Cache, expiry: number
   };
 }
 
-function timedRPCHandler (backend: Backend, cache: Cache, expiry: number = 15): RPCHandler {
+function timedRPCHandler(
+  backend: Backend,
+  cache: Cache,
+  expiry: number = 15,
+): RPCHandler {
   return async (method, params) => {
     const ck = `rpc/${method}/${hashParams(params)}`;
     return doCachedRPC(backend, cache, method, params, ck, expiry);
   };
 }
 
-async function getBlockByHeight (backend: Backend, cache: Cache, reqHeight: number): Promise<any> {
+async function getBlockByHeight(
+  backend: Backend,
+  cache: Cache,
+  reqHeight: number,
+): Promise<any> {
   const chainHeight = await getHeight(backend, cache);
   const params = [reqHeight, 1, 1];
   let ck;
@@ -176,7 +192,14 @@ async function getBlockByHeight (backend: Backend, cache: Cache, reqHeight: numb
   return doCachedRPC(backend, cache, 'getblockbyheight', params, ck, 15 * 60);
 }
 
-async function doCachedRPC (backend: Backend, cache: Cache, method: string, params: any[], ck: string, expiry: number): Promise<any> {
+async function doCachedRPC(
+  backend: Backend,
+  cache: Cache,
+  method: string,
+  params: any[],
+  ck: string,
+  expiry: number,
+): Promise<any> {
   const cached = await cache.getKey(ck);
   if (cached) {
     return cached;
@@ -194,7 +217,7 @@ async function doCachedRPC (backend: Backend, cache: Cache, method: string, para
   return rpcRes.result;
 }
 
-async function getAddressBloom (backend: Backend, cache: Cache, height: number) {
+async function getAddressBloom(backend: Backend, cache: Cache, height: number) {
   if (!Number.isInteger(height)) {
     throw new RPCError(invalidParams);
   }
@@ -215,7 +238,7 @@ async function getAddressBloom (backend: Backend, cache: Cache, height: number) 
   }
 
   const block = await getBlockByHeight(backend, cache, height);
-  const {m, k} = getBloomSize(block.tx.length);
+  const { m, k } = getBloomSize(block.tx.length);
   const addrBloom = new BloomFilter(m, k);
   const outBloom = new BloomFilter(m, k);
   for (const tx of block.tx) {
@@ -224,41 +247,42 @@ async function getAddressBloom (backend: Backend, cache: Cache, height: number) 
         continue;
       }
 
-      outBloom.add(Buffer.concat([
-        Buffer.from(vin.txid, 'hex'),
-        uint32LEBuf(vin.vout)
-      ]));
+      outBloom.add(
+        Buffer.concat([Buffer.from(vin.txid, 'hex'), uint32LEBuf(vin.vout)]),
+      );
     }
 
     for (const vout of tx.vout) {
-      addrBloom.add(Buffer.concat([
-        Buffer.from(vout.address.hash, 'hex'),
-        Buffer.from([vout.address.version])
-      ]));
+      addrBloom.add(
+        Buffer.concat([
+          Buffer.from(vout.address.hash, 'hex'),
+          Buffer.from([vout.address.version]),
+        ]),
+      );
     }
   }
 
   const result = {
     height,
     addressBloom: addrBloom.toBuffer().toString('hex'),
-    outpointBloom: outBloom.toBuffer().toString('hex')
+    outpointBloom: outBloom.toBuffer().toString('hex'),
   };
   await cache.setKey(ck, result, expiry);
   return result;
 }
 
-function addressBloomHandler (backend: Backend, cache: Cache): RPCHandler {
+function addressBloomHandler(backend: Backend, cache: Cache): RPCHandler {
   return async (method, params) => {
     if (params.length < 1) {
       throw new RPCError({
         message: 'Must specify at least one block height.',
-        code: invalidParams.code
+        code: invalidParams.code,
       });
     }
     if (params.length > 100) {
       throw new RPCError({
         message: 'Cannot specify more than 100 block heights.',
-        code: invalidParams.code
+        code: invalidParams.code,
       });
     }
 
@@ -278,12 +302,15 @@ function addressBloomHandler (backend: Backend, cache: Cache): RPCHandler {
   };
 }
 
-function addressBloomByRangeHandler (backend: Backend, cache: Cache): RPCHandler {
+function addressBloomByRangeHandler(
+  backend: Backend,
+  cache: Cache,
+): RPCHandler {
   return async (method, params) => {
     if (params.length !== 2) {
       throw new RPCError({
         message: 'Must specify a start and end block height.',
-        code: invalidParams.code
+        code: invalidParams.code,
       });
     }
 
@@ -292,25 +319,25 @@ function addressBloomByRangeHandler (backend: Backend, cache: Cache): RPCHandler
     if (!Number.isInteger(start) || !Number.isInteger(end)) {
       throw new RPCError({
         message: 'Start and end must be integers.',
-        code: invalidParams.code
+        code: invalidParams.code,
       });
     }
     if (end - start > 100) {
       throw new RPCError({
         message: 'Cannot specify a ranger larger than 100 blocks.',
-        code: invalidParams.code
+        code: invalidParams.code,
       });
     }
     if (start >= end) {
       throw new RPCError({
         message: 'Start must come before end.',
-        code: invalidParams.code
+        code: invalidParams.code,
       });
     }
     if (start < 0) {
       throw new RPCError({
         message: 'Start cannot be negative.',
-        code: invalidParams.code
+        code: invalidParams.code,
       });
     }
 
@@ -318,7 +345,7 @@ function addressBloomByRangeHandler (backend: Backend, cache: Cache): RPCHandler
     if (end > chainHeight) {
       throw new RPCError({
         message: 'End cannot be higher than the chain height.',
-        code: invalidParams.code
+        code: invalidParams.code,
       });
     }
 
@@ -327,16 +354,19 @@ function addressBloomByRangeHandler (backend: Backend, cache: Cache): RPCHandler
       blooms.push(await getAddressBloom(backend, cache, i));
     }
     return blooms;
-  }
+  };
 }
 
-function hashParams (params: any): string {
+function hashParams(params: any): string {
   const hash = crypto.createHash('md5');
   hash.update(JSON.stringify(params));
   return hash.digest().toString('hex');
 }
 
-export function rpcRouter (backend: Backend, cache: Cache): (req: Request, res: Response) => void {
+export function rpcRouter(
+  backend: Backend,
+  cache: Cache,
+): (req: Request, res: Response) => void {
   const registrar = new RPCRegistrar(backend);
   const directRPC = directRPCHandler(backend);
   const blockCacheRPC = blockExpiringRPCHandler(backend, cache);
@@ -364,7 +394,10 @@ export function rpcRouter (backend: Backend, cache: Cache): (req: Request, res: 
   registrar.addHandler('getblockheader', blockCacheRPC);
   registrar.addHandler('getchaintips', blockCacheRPC);
   registrar.addHandler('getdifficulty', timedRPCHandler(backend, cache, 120));
-  registrar.addHandler('getmempoolinfo', blockExpiringRPCHandler(backend, cache, 10));
+  registrar.addHandler(
+    'getmempoolinfo',
+    blockExpiringRPCHandler(backend, cache, 10),
+  );
   registrar.addHandler('getmempoolancestors', directRPC);
   registrar.addHandler('getmempooldescendants', directRPC);
   registrar.addHandler('getmempoolentry', timedRPCHandler(backend, cache, 120));
@@ -407,7 +440,10 @@ export function rpcRouter (backend: Backend, cache: Cache): (req: Request, res: 
   registrar.addHandler('clearbanned', disabledRPCHandler);
   registrar.addHandler('getnameinfo', blockCacheRPC);
   registrar.addHandler('getnames', disabledRPCHandler);
-  registrar.addHandler('getnamebyhash', timedRPCHandler(backend, cache, 60 * 60));
+  registrar.addHandler(
+    'getnamebyhash',
+    timedRPCHandler(backend, cache, 60 * 60),
+  );
   registrar.addHandler('getnameresource', blockCacheRPC);
   registrar.addHandler('getnameproof', blockCacheRPC);
   registrar.addHandler('createclaim', directRPC);
@@ -419,7 +455,10 @@ export function rpcRouter (backend: Backend, cache: Cache): (req: Request, res: 
 
   // custom RPC handlers
   registrar.addHandler('getbloombyheight', addressBloomHandler(backend, cache));
-  registrar.addHandler('getbloombyheightrange', addressBloomByRangeHandler(backend, cache));
+  registrar.addHandler(
+    'getbloombyheightrange',
+    addressBloomByRangeHandler(backend, cache),
+  );
 
   return (req, res) => registrar.handle(req, res);
 }

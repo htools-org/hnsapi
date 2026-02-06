@@ -7,7 +7,7 @@ export default class BitSet {
 
   private words: bigint[];
 
-  constructor (length: number) {
+  constructor(length: number) {
     this.length = length;
     this.words = [];
     for (let i = 0; i < this.wordsNeeded(length); i++) {
@@ -15,19 +15,24 @@ export default class BitSet {
     }
   }
 
-  set (i: number) {
-    this.words[i >> LOG2_WORD_SIZE] |= BigInt(1) << (BigInt(i) & BigInt(WORD_SIZE - 1));
+  set(i: number) {
+    this.words[i >> LOG2_WORD_SIZE] |=
+      BigInt(1) << (BigInt(i) & BigInt(WORD_SIZE - 1));
   }
 
-  test (i: number): boolean {
+  test(i: number): boolean {
     if (i >= this.length) {
       return false;
     }
 
-    return (this.words[i >> LOG2_WORD_SIZE] & (BigInt(1) << (BigInt(i) & BigInt(WORD_SIZE - 1)))) !== BigInt(0);
+    return (
+      (this.words[i >> LOG2_WORD_SIZE] &
+        (BigInt(1) << (BigInt(i) & BigInt(WORD_SIZE - 1)))) !==
+      BigInt(0)
+    );
   }
 
-  toBuffer (): Buffer {
+  toBuffer(): Buffer {
     // 8 * numwords + 8 for the length
     const buf = new ArrayBuffer(8 * this.words.length + 8);
     const view = new DataView(buf);
@@ -38,7 +43,7 @@ export default class BitSet {
     return Buffer.from(buf);
   }
 
-  private wordsNeeded (i: number): number {
+  private wordsNeeded(i: number): number {
     return (i + WORD_SIZE - 1) >> LOG2_WORD_SIZE;
   }
 }

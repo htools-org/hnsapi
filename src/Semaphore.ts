@@ -1,8 +1,8 @@
 export interface SemaphoreItem {
-  resolve: (val: any) => void
-  reject: (err: any) => void
-  cb: () => Promise<unknown>
-  next: SemaphoreItem | null
+  resolve: (val: any) => void;
+  reject: (err: any) => void;
+  cb: () => Promise<unknown>;
+  next: SemaphoreItem | null;
 }
 
 export class Semaphore {
@@ -12,17 +12,17 @@ export class Semaphore {
 
   private activeReqs: number = 0;
 
-  constructor (tickets: number) {
+  constructor(tickets: number) {
     this.tickets = tickets;
   }
 
-  take<T> (cb: () => Promise<T>): Promise<T> {
+  take<T>(cb: () => Promise<T>): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const item: SemaphoreItem = {
         resolve,
         reject,
         cb,
-        next: null
+        next: null,
       };
       if (this.currentReqs) {
         this.currentReqs.next = item;
@@ -33,7 +33,7 @@ export class Semaphore {
     });
   }
 
-  private next () {
+  private next() {
     if (!this.currentReqs) {
       return;
     }
@@ -45,7 +45,9 @@ export class Semaphore {
     this.activeReqs++;
     const item = this.currentReqs;
     this.currentReqs = item.next;
-    item.cb().then((res) => item.resolve(res))
+    item
+      .cb()
+      .then((res) => item.resolve(res))
       .catch((err) => item.reject(err))
       .finally(() => {
         this.activeReqs--;

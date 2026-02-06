@@ -4,14 +4,17 @@ import getHeight from './height';
 import { type Cache } from './cache';
 
 interface RESTHandler {
-  (req: Request, res: Response): void
+  (req: Request, res: Response): void;
 }
 
-function identity (data: any): any {
+function identity(data: any): any {
   return data;
 }
 
-function directGetHandler (backend: Backend, postProcess?: (data: any) => void): RESTHandler {
+function directGetHandler(
+  backend: Backend,
+  postProcess?: (data: any) => void,
+): RESTHandler {
   return async (req, res) => {
     try {
       const bRes = await backend.doGet(req.path);
@@ -25,7 +28,10 @@ function directGetHandler (backend: Backend, postProcess?: (data: any) => void):
   };
 }
 
-function directPostHandler (backend: Backend, postProcess?: (data: any) => void): RESTHandler {
+function directPostHandler(
+  backend: Backend,
+  postProcess?: (data: any) => void,
+): RESTHandler {
   return async (req, res) => {
     try {
       const bRes = await backend.doPost(req.path, req.body);
@@ -39,7 +45,12 @@ function directPostHandler (backend: Backend, postProcess?: (data: any) => void)
   };
 }
 
-function blockExpiringGetHandler (backend: Backend, cache: Cache, postProcess?: (data: any) => void, expiry?: number): RESTHandler {
+function blockExpiringGetHandler(
+  backend: Backend,
+  cache: Cache,
+  postProcess?: (data: any) => void,
+  expiry?: number,
+): RESTHandler {
   return async (req, res) => {
     const height = await getHeight(backend, cache);
 
@@ -64,28 +75,27 @@ function blockExpiringGetHandler (backend: Backend, cache: Cache, postProcess?: 
   };
 }
 
-function getTXByAddressesHandler (backend: Backend): RESTHandler {
+function getTXByAddressesHandler(backend: Backend): RESTHandler {
   return async (req, res) => {
-    let {addresses, startBlock, endBlock} = req.body;
+    let { addresses, startBlock, endBlock } = req.body;
     if (!addresses || !addresses.length) {
       res.status(400);
       return res.json({
-        message: 'Must specify a list of addresses.'
+        message: 'Must specify a list of addresses.',
       });
     }
 
     if (addresses.length > 10000) {
       res.status(400);
       return res.json({
-        message: 'Cannot specify more than 1500 addresses.'
+        message: 'Cannot specify more than 1500 addresses.',
       });
     }
-
 
     if (typeof startBlock === 'undefined' || typeof endBlock === 'undefined') {
       res.status(400);
       return res.json({
-        message: 'Must specify start and end blocks.'
+        message: 'Must specify start and end blocks.',
       });
     }
 
@@ -95,21 +105,21 @@ function getTXByAddressesHandler (backend: Backend): RESTHandler {
     if (isNaN(startBlock) || isNaN(endBlock)) {
       res.status(400);
       return res.json({
-        message: 'Must specify numeric start and end blocks.'
+        message: 'Must specify numeric start and end blocks.',
       });
     }
 
     if (startBlock > endBlock) {
       res.status(400);
       return res.json({
-        message: 'Start block must be before end block.'
+        message: 'Start block must be before end block.',
       });
     }
 
     if (endBlock - startBlock + 1 > 250) {
       res.status(400);
       return res.json({
-        message: 'Cannot specify a block range of more than 250 blocks.'
+        message: 'Cannot specify a block range of more than 250 blocks.',
       });
     }
 
@@ -167,26 +177,27 @@ function getTXByAddressesHandler (backend: Backend): RESTHandler {
     res.json({
       startBlock: startBlock,
       endBlock: endBlock,
-      txs: out
+      txs: out,
     });
   };
 }
 
-function timedGetHandler(backend: Backend, cache: Cache, expiry: number): RESTHandler {
-  return async (req, res) => {
-
-  }
+function timedGetHandler(
+  backend: Backend,
+  cache: Cache,
+  expiry: number,
+): RESTHandler {
+  return async (req, res) => {};
 }
 
-function disabledHandler (req: Request, res: Response) {
+function disabledHandler(req: Request, res: Response) {
   res.status(403);
   res.json({
-    message: 'Forbidden.'
+    message: 'Forbidden.',
   });
 }
 
-
-function handleError (e: any, req: Request, res: Response) {
+function handleError(e: any, req: Request, res: Response) {
   if (e.response) {
     res.status(e.response.status);
     return res.json(e.response.status);
@@ -195,35 +206,38 @@ function handleError (e: any, req: Request, res: Response) {
   if (e.request) {
     res.status(503);
     return res.json({
-      message: 'Internal error.'
+      message: 'Internal error.',
     });
   }
 
   res.status(500);
   return res.json({
-    message: 'Unknown error.'
+    message: 'Unknown error.',
   });
 }
 
-export function restRouter (backend: Backend, cache: Cache): Router {
+export function restRouter(backend: Backend, cache: Cache): Router {
   const router = express.Router();
-  router.get('/', blockExpiringGetHandler(backend, cache, (data) => {
-    data.pool = {
-      ...data.pool,
-      host: '0.0.0.0',
-      identitykey: '',
-      outbound: 0,
-      inbound: 0,
-    };
-    data.time.uptime = 0;
-    data.memory = {
-      total: 0,
-      jsHeap: 0,
-      jsHeapTotal: 0,
-      external: 0,
-    };
-    return data;
-  }));
+  router.get(
+    '/',
+    blockExpiringGetHandler(backend, cache, (data) => {
+      data.pool = {
+        ...data.pool,
+        host: '0.0.0.0',
+        identitykey: '',
+        outbound: 0,
+        inbound: 0,
+      };
+      data.time.uptime = 0;
+      data.memory = {
+        total: 0,
+        jsHeap: 0,
+        jsHeapTotal: 0,
+        external: 0,
+      };
+      return data;
+    }),
+  );
   router.get('/mempool', directGetHandler(backend));
   router.get('/mempool/invalid', directGetHandler(backend));
   router.get(

@@ -1,5 +1,5 @@
-import axios, {AxiosInstance, AxiosResponse} from 'axios';
-import {Semaphore} from './Semaphore';
+import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
+import { Semaphore } from './Semaphore';
 
 export interface RPCRequest {
   method: string

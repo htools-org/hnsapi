@@ -1,7 +1,7 @@
-import {Backend} from './client';
-import express, {Request, Response, Router} from 'express';
+import { Backend } from './client';
+import express, { type Request, type Response, Router } from 'express';
 import getHeight from './height';
-import {Cache} from './cache';
+import { type Cache } from './cache';
 
 interface RESTHandler {
   (req: Request, res: Response): void
@@ -226,17 +226,32 @@ export function restRouter (backend: Backend, cache: Cache): Router {
   }));
   router.get('/mempool', directGetHandler(backend));
   router.get('/mempool/invalid', directGetHandler(backend));
-  router.get('/mempool/invalid/:hash([0-9a-f]{64})', directGetHandler(backend));
-  router.get('/block/:hashOrHeight([0-9a-f]{64}|[0-9]+)', blockExpiringGetHandler(backend, cache));
-  router.get('/header/:hashOrHeight([0-9a-f]{64}|[0-9]+)', blockExpiringGetHandler(backend, cache));
+  router.get(
+    /^\/mempool\/invalid\/[0-9a-f]{64}$/,
+    directGetHandler(backend),
+  );
+  router.get(
+    /^\/block\/(?:[0-9a-f]{64}|[0-9]+)$/,
+    blockExpiringGetHandler(backend, cache),
+  );
+  router.get(
+    /^\/header\/(?:[0-9a-f]{64}|[0-9]+)$/,
+    blockExpiringGetHandler(backend, cache),
+  );
   router.post('/broadcast', directPostHandler(backend));
   router.post('/claim', directPostHandler(backend));
   router.get('/fee', directGetHandler(backend));
   router.post('/reset', disabledHandler);
-  router.get('/coin/:hash([0-9a-f]{64})/:index([0-9]+)', blockExpiringGetHandler(backend, cache));
+  router.get(
+    /^\/coin\/[0-9a-f]{64}\/[0-9]+$/,
+    blockExpiringGetHandler(backend, cache),
+  );
   router.get('/coin/address/:address', blockExpiringGetHandler(backend, cache));
   router.post('/coin/address', directPostHandler(backend));
-  router.get('/tx/:hash([0-9a-f]{64})', blockExpiringGetHandler(backend, cache));
+  router.get(
+    /^\/tx\/[0-9a-f]{64}$/,
+    blockExpiringGetHandler(backend, cache),
+  );
   router.get('/tx/address/:address', directGetHandler(backend));
   router.get('/tx/address/:address', directGetHandler(backend));
   // router.post('/tx/address', directPostHandler(backend));

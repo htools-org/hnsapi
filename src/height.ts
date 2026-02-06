@@ -1,5 +1,5 @@
-import {Backend} from './client';
-import {BLOCK_HEIGHT_KEY, Cache} from './cache';
+import { Backend } from './client';
+import { BLOCK_HEIGHT_KEY, type Cache } from './cache';
 
 let lock: Promise<number> | null = null;
 

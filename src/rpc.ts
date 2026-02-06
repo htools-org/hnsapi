@@ -1,10 +1,16 @@
-import {Request, Response} from 'express';
-import {Backend, internalError, invalidParams, invalidRequest, methodNotFound} from './client';
-import {Cache} from './cache';
+import { type Request, type Response } from 'express';
+import {
+  Backend,
+  internalError,
+  invalidParams,
+  invalidRequest,
+  methodNotFound,
+} from './client';
+import { type Cache } from './cache';
 import crypto from 'crypto';
 import getHeight from './height';
-import BloomFilter, {getBloomSize} from './BloomFilter';
-import {uint32LEBuf} from './io';
+import BloomFilter, { getBloomSize } from './BloomFilter';
+import { uint32LEBuf } from './io';
 
 const COINBASE = '0000000000000000000000000000000000000000000000000000000000000000';
 const FINALITY_DEPTH = 11;
@@ -92,7 +98,7 @@ class RPCRegistrar {
           result,
           error: null
         });
-      } catch (e) {
+      } catch (e: any) {
         let error = internalError;
         if (e instanceof RPCError) {
           e = e as RPCError;

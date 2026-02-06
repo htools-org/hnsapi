@@ -27,4 +27,7 @@ app.get('/healthz', (req, res) => {
     message: 'OK'
   });
 });
-app.listen(process.env.PORT ? Number(process.env.PORT) : 8080, () => console.log('Listening.'));
+
+const port = process.env.PORT ? Number(process.env.PORT) : 8080;
+
+app.listen(port, () => console.log(`Listening on port ${port}`));
